@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "408980309453",
+    "project_id": "runiviva",
+    "storage_bucket": "runiviva.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:408980309453:android:90b9eab07aec4b073f7084",
+        "android_client_info": {
+          "package_name": "com.pelesstefania.runiviva"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA38PcFhQ3TutYLEZtD7FaCWhNd56FWGLQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
