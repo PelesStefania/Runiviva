@@ -5,4 +5,5 @@ object Routes {
     const val REGISTER = "register"
     const val FORGOT_PASSWORD = "forgot_password"
     const val HOME = "home"
+    const val RUN = "run"
 }

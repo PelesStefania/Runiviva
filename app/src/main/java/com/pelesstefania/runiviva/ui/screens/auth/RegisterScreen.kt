@@ -27,7 +27,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.google.firebase.auth.FirebaseAuth
 import com.pelesstefania.runiviva.data.AuthRepository
+import com.pelesstefania.runiviva.data.UserRepository
+import com.pelesstefania.runiviva.model.AppUser
 
 @Composable
 fun RegisterScreen(navController: NavHostController) {
@@ -39,6 +42,7 @@ fun RegisterScreen(navController: NavHostController) {
     val lightBlue = Color(0xFFD9F0FF)
     val context = LocalContext.current
     val authRepository = remember { AuthRepository() }
+    val userRepository = remember { UserRepository() }
 
     Column(
         modifier = Modifier
@@ -113,8 +117,33 @@ fun RegisterScreen(navController: NavHostController) {
                     email = email.trim(),
                     password = password,
                     onSuccess = {
-                        Toast.makeText(context, "Account created successfully", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack()
+                        val firebaseUser = FirebaseAuth.getInstance().currentUser
+
+                        if (firebaseUser == null) {
+                            Toast.makeText(context, "User created, but profile could not be loaded", Toast.LENGTH_LONG).show()
+                            return@registerUser
+                        }
+
+                        val appUser = AppUser(
+                            uid = firebaseUser.uid,
+                            username = username.trim(),
+                            email = email.trim(),
+                            streak = 0,
+                            totalRuns = 0,
+                            totalDistanceKm = 0.0,
+                            lastRunDate = ""
+                        )
+
+                        userRepository.saveUser(
+                            user = appUser,
+                            onSuccess = {
+                                Toast.makeText(context, "Account created successfully", Toast.LENGTH_SHORT).show()
+                                navController.popBackStack()
+                            },
+                            onError = { errorMessage ->
+                                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                            }
+                        )
                     },
                     onError = { errorMessage ->
                         Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()

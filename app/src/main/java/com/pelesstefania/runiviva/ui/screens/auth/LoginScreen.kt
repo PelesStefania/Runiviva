@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +36,7 @@ import com.pelesstefania.runiviva.navigation.Routes
 fun LoginScreen(navController: NavHostController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var debugMessage by remember { mutableStateOf("Idle") }
 
     val lightBlue = Color(0xFFD9F0FF)
     val context = LocalContext.current
@@ -43,6 +46,7 @@ fun LoginScreen(navController: NavHostController) {
         modifier = Modifier
             .fillMaxSize()
             .background(lightBlue)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -84,22 +88,33 @@ fun LoginScreen(navController: NavHostController) {
 
         Button(
             onClick = {
+                debugMessage = "Button pressed"
+
                 if (email.isBlank() || password.isBlank()) {
+                    debugMessage = "Please fill in all fields"
                     Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
+
+                debugMessage = "Trying login..."
 
                 authRepository.loginUser(
                     email = email.trim(),
                     password = password,
                     onSuccess = {
+                        debugMessage = "Login successful"
                         Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
                         navController.navigate(Routes.HOME) {
                             popUpTo(Routes.LOGIN) { inclusive = true }
                         }
                     },
                     onError = { errorMessage ->
-                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                        debugMessage = "Login error: $errorMessage"
+                        Toast.makeText(
+                            context,
+                            "Login error: $errorMessage",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 )
             },
@@ -108,6 +123,13 @@ fun LoginScreen(navController: NavHostController) {
         ) {
             Text("Log In")
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = debugMessage,
+            style = MaterialTheme.typography.bodyMedium
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
