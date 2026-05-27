@@ -20,4 +20,34 @@ interface RunDao {
 
     @Query("UPDATE local_runs SET isSynced = 1 WHERE runId = :runId")
     suspend fun markAsSynced(runId: String)
+
+    @Query("SELECT * FROM local_runs WHERE userId = :userId ORDER BY startTime DESC")
+    suspend fun getRunsForUser(userId: String): List<LocalRunSession>
+
+    @Query("SELECT * FROM local_runs WHERE userId = :userId AND date = :date ORDER BY startTime DESC")
+    suspend fun getRunsForUserByDate(userId: String, date: String): List<LocalRunSession>
+
+    @Query("SELECT SUM(distanceKm) FROM local_runs WHERE userId = :userId")
+    suspend fun getTotalDistanceForUser(userId: String): Double?
+
+    @Query("SELECT COUNT(*) FROM local_runs WHERE userId = :userId")
+    suspend fun getTotalRunsForUser(userId: String): Int
+
+    @Query("SELECT SUM(durationSeconds) FROM local_runs WHERE userId = :userId AND date = :date")
+    suspend fun getTotalDurationForDate(userId: String, date: String): Int?
+
+    @Query("SELECT SUM(distanceKm) FROM local_runs WHERE userId = :userId AND date = :date")
+    suspend fun getTotalDistanceForDate(userId: String, date: String): Double?
+
+    @Query("SELECT COUNT(*) FROM local_runs WHERE userId = :userId AND date = :date")
+    suspend fun getRunCountForDate(userId: String, date: String): Int
+
+    @Query("""
+    SELECT DISTINCT date 
+    FROM local_runs 
+    WHERE userId = :userId 
+    ORDER BY date DESC
+    """)
+    suspend fun getRunDates(userId: String): List<String>
+
 }

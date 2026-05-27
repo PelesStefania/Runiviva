@@ -1,6 +1,5 @@
 package com.pelesstefania.runiviva.ui.screens
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -12,8 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,18 +36,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.pelesstefania.runiviva.R
-import com.pelesstefania.runiviva.data.DailySummaryRepository
-import com.pelesstefania.runiviva.data.RunRepository
+import com.pelesstefania.runiviva.data.LocalRunRepository
+import com.pelesstefania.runiviva.data.RunRestoreRepository
+import com.pelesstefania.runiviva.data.RunSyncRepository
 import com.pelesstefania.runiviva.data.UserRepository
 import com.pelesstefania.runiviva.model.AppUser
-import com.pelesstefania.runiviva.model.DailySummary
-import com.pelesstefania.runiviva.model.RunSession
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.util.Date
 import java.util.Locale
-import java.util.UUID
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun HomeScreen() {
@@ -54,59 +54,126 @@ fun HomeScreen() {
     val cardColor = Color(0xFFEAF6FF)
 
     val context = LocalContext.current
-    val runRepository = remember { RunRepository() }
+    val coroutineScope = rememberCoroutineScope()
+
+    val localRunRepository = remember { LocalRunRepository(context) }
+    val runSyncRepository = remember { RunSyncRepository(context) }
+    val runRestoreRepository = remember { RunRestoreRepository(context) }
     val userRepository = remember { UserRepository() }
-    val dailySummaryRepository = remember { DailySummaryRepository() }
 
     val currentUser = FirebaseAuth.getInstance().currentUser
+
     val currentDate = remember {
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     }
 
     var user by remember { mutableStateOf<AppUser?>(null) }
-    var todaySummary by remember { mutableStateOf<DailySummary?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+
+    var todayDistance by remember { mutableStateOf(0.0) }
+    var todayDuration by remember { mutableStateOf(0) }
+    var todayRunCount by remember { mutableStateOf(0) }
+
+    var totalRuns by remember { mutableStateOf(0) }
+    var totalDistance by remember { mutableStateOf(0.0) }
+    var localStreak by remember { mutableStateOf(0) }
 
     fun formatDuration(seconds: Int): String {
         val minutes = seconds / 60
         val remainingSeconds = seconds % 60
+
         return if (minutes > 0) {
-            if (remainingSeconds > 0) "$minutes min $remainingSeconds sec" else "$minutes min"
+            if (remainingSeconds > 0) {
+                "$minutes min $remainingSeconds sec"
+            } else {
+                "$minutes min"
+            }
         } else {
             "$seconds sec"
         }
     }
 
+    fun calculateStreak(dates: List<String>): Int {
+        if (dates.isEmpty()) return 0
+
+        val parsedDates = dates.map {
+            LocalDate.parse(it)
+        }.sortedDescending()
+
+        var streak = 1
+
+        for (i in 0 until parsedDates.size - 1) {
+            val current = parsedDates[i]
+            val next = parsedDates[i + 1]
+
+            val diff = ChronoUnit.DAYS.between(next, current)
+
+            if (diff == 1L) {
+                streak++
+            } else if (diff > 1L) {
+                break
+            }
+        }
+
+        return streak
+    }
+
+    fun loadLocalStats(userId: String) {
+        coroutineScope.launch {
+            todayDistance = localRunRepository.getTotalDistanceForDate(
+                userId = userId,
+                date = currentDate
+            )
+
+            todayDuration = localRunRepository.getTotalDurationForDate(
+                userId = userId,
+                date = currentDate
+            )
+
+            todayRunCount = localRunRepository.getRunCountForDate(
+                userId = userId,
+                date = currentDate
+            )
+
+            totalRuns = localRunRepository.getTotalRunsForUser(userId)
+
+            totalDistance = localRunRepository.getTotalDistanceForUser(userId)
+
+            val runDates = localRunRepository.getRunDates(userId)
+
+            localStreak = calculateStreak(runDates)
+
+            isLoading = false
+        }
+    }
+
     fun loadHomeData() {
         if (currentUser == null) {
-            Toast.makeText(context, "No logged in user", Toast.LENGTH_SHORT).show()
             isLoading = false
             return
         }
 
         isLoading = true
 
+        loadLocalStats(currentUser.uid)
+
+        coroutineScope.launch {
+            try {
+                runSyncRepository.syncUnsyncedRuns()
+                runRestoreRepository.restoreRunsFromFirebase(currentUser.uid)
+                loadLocalStats(currentUser.uid)
+            } catch (e: Exception) {
+                loadLocalStats(currentUser.uid)
+            }
+        }
+
         userRepository.getUserById(
             uid = currentUser.uid,
             onSuccess = { loadedUser ->
                 user = loadedUser
-
-                dailySummaryRepository.getDailySummary(
-                    userId = currentUser.uid,
-                    date = currentDate,
-                    onSuccess = { summary ->
-                        todaySummary = summary
-                        isLoading = false
-                    },
-                    onError = { errorMessage ->
-                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                        isLoading = false
-                    }
-                )
             },
-            onError = { errorMessage ->
-                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                isLoading = false
+            onError = {
+                user = null
             }
         )
     }
@@ -115,8 +182,15 @@ fun HomeScreen() {
         loadHomeData()
     }
 
+    val averagePace =
+        if (todayDistance > 0) {
+            (todayDuration / 60.0) / todayDistance
+        } else {
+            0.0
+        }
+
     val moodMessage = when {
-        (todaySummary?.runCount ?: 0) > 0 -> "Nice. You actually moved today."
+        todayRunCount > 0 -> "Nice. You actually moved today."
         else -> "Get up and move."
     }
 
@@ -194,13 +268,19 @@ fun HomeScreen() {
 
                 InfoRow(
                     "Distance",
-                    String.format(Locale.getDefault(), "%.2f km", todaySummary?.totalDistanceKm ?: 0.0)
+                    String.format(Locale.getDefault(), "%.2f km", todayDistance)
                 )
-                InfoRow("Runs", "${todaySummary?.runCount ?: 0}")
-                InfoRow("Duration", formatDuration(todaySummary?.totalDurationSeconds ?: 0))
+
+                InfoRow("Runs", "$todayRunCount")
+
+                InfoRow(
+                    "Duration",
+                    formatDuration(todayDuration)
+                )
+
                 InfoRow(
                     "Avg pace",
-                    String.format(Locale.getDefault(), "%.2f min/km", todaySummary?.averagePaceMinPerKm ?: 0.0)
+                    String.format(Locale.getDefault(), "%.2f min/km", averagePace)
                 )
             }
         }
@@ -223,132 +303,18 @@ fun HomeScreen() {
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                InfoRow("Streak", "${user?.streak ?: 0}")
-                InfoRow("Total runs", "${user?.totalRuns ?: 0}")
+                InfoRow("Streak", "$localStreak")
+
+                InfoRow("Total runs", "$totalRuns")
+
                 InfoRow(
                     "Total distance",
-                    String.format(Locale.getDefault(), "%.2f km", user?.totalDistanceKm ?: 0.0)
+                    String.format(Locale.getDefault(), "%.2f km", totalDistance)
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = {
-                if (currentUser == null) {
-                    Toast.makeText(context, "No logged in user", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
-
-                val start = System.currentTimeMillis()
-                val end = start + 900_000
-
-                val testRun = RunSession(
-                    runId = UUID.randomUUID().toString(),
-                    userId = currentUser.uid,
-                    date = currentDate,
-                    startTime = start,
-                    endTime = end,
-                    durationSeconds = 900,
-                    distanceKm = 2.4,
-                    paceMinPerKm = 6.25,
-                    mode = "normal"
-                )
-
-                runRepository.saveRun(
-                    runSession = testRun,
-                    onSuccess = {
-                        userRepository.getUserById(
-                            uid = currentUser.uid,
-                            onSuccess = { loadedUser ->
-                                val updatedUser = AppUser(
-                                    uid = loadedUser.uid,
-                                    username = loadedUser.username,
-                                    email = loadedUser.email,
-                                    streak = if (loadedUser.lastRunDate == currentDate) {
-                                        loadedUser.streak
-                                    } else {
-                                        loadedUser.streak + 1
-                                    },
-                                    totalRuns = loadedUser.totalRuns + 1,
-                                    totalDistanceKm = loadedUser.totalDistanceKm + testRun.distanceKm,
-                                    lastRunDate = currentDate
-                                )
-
-                                userRepository.updateUser(
-                                    user = updatedUser,
-                                    onSuccess = {
-                                        dailySummaryRepository.getDailySummary(
-                                            userId = currentUser.uid,
-                                            date = currentDate,
-                                            onSuccess = { existingSummary ->
-                                                val totalDistance =
-                                                    (existingSummary?.totalDistanceKm ?: 0.0) + testRun.distanceKm
-                                                val totalDuration =
-                                                    (existingSummary?.totalDurationSeconds ?: 0) + testRun.durationSeconds
-                                                val runCount =
-                                                    (existingSummary?.runCount ?: 0) + 1
-
-                                                val averagePace =
-                                                    if (totalDistance > 0) {
-                                                        (totalDuration / 60.0) / totalDistance
-                                                    } else {
-                                                        0.0
-                                                    }
-
-                                                val updatedSummary = DailySummary(
-                                                    userId = currentUser.uid,
-                                                    date = currentDate,
-                                                    totalDistanceKm = totalDistance,
-                                                    totalDurationSeconds = totalDuration,
-                                                    runCount = runCount,
-                                                    averagePaceMinPerKm = averagePace,
-                                                    didRun = true
-                                                )
-
-                                                dailySummaryRepository.saveDailySummary(
-                                                    summary = updatedSummary,
-                                                    onSuccess = {
-                                                        Toast.makeText(
-                                                            context,
-                                                            "Test run saved",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                        loadHomeData()
-                                                    },
-                                                    onError = { errorMessage ->
-                                                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                                                    }
-                                                )
-                                            },
-                                            onError = { errorMessage ->
-                                                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                                            }
-                                        )
-                                    },
-                                    onError = { errorMessage ->
-                                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                                    }
-                                )
-                            },
-                            onError = { errorMessage ->
-                                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                            }
-                        )
-                    },
-                    onError = { errorMessage ->
-                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                    }
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            shape = RoundedCornerShape(18.dp)
-        ) {
-            Text("Save Test Run")
-        }
     }
 }
 
@@ -362,6 +328,7 @@ fun InfoRow(label: String, value: String) {
             text = label,
             style = MaterialTheme.typography.bodyLarge
         )
+
         Text(
             text = value,
             style = MaterialTheme.typography.bodyLarge,

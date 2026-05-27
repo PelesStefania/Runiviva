@@ -6,4 +6,6 @@ object Routes {
     const val FORGOT_PASSWORD = "forgot_password"
     const val HOME = "home"
     const val RUN = "run"
+    const val CALENDAR = "calendar"
+
 }

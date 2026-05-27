@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -23,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.pelesstefania.runiviva.ui.screens.CalendarScreen
 import com.pelesstefania.runiviva.ui.screens.HomeScreen
 import com.pelesstefania.runiviva.ui.screens.RunScreen
 import com.pelesstefania.runiviva.ui.screens.auth.ForgotPasswordScreen
@@ -40,15 +42,31 @@ fun AppNavigation() {
     val navController = rememberNavController()
 
     val bottomNavItems = listOf(
-        BottomNavItem(Routes.HOME, "Home", Icons.Default.Home),
-        BottomNavItem(Routes.RUN, "Run", Icons.AutoMirrored.Filled.DirectionsRun)
+        BottomNavItem(
+            route = Routes.HOME,
+            label = "Home",
+            icon = Icons.Default.Home
+        ),
+        BottomNavItem(
+            route = Routes.RUN,
+            label = "Run",
+            icon = Icons.AutoMirrored.Filled.DirectionsRun
+        ),
+        BottomNavItem(
+            route = Routes.CALENDAR,
+            label = "Calendar",
+            icon = Icons.Default.DateRange
+        )
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
 
-    val showBottomBar = currentRoute == Routes.HOME || currentRoute == Routes.RUN
+    val showBottomBar =
+        currentRoute == Routes.HOME ||
+                currentRoute == Routes.RUN ||
+                currentRoute == Routes.CALENDAR
 
     val backgroundColor = Color(0xFFD9F0FF)
     val dividerColor = Color(0xFF4B67A1)
@@ -68,13 +86,18 @@ fun AppNavigation() {
                         tonalElevation = 0.dp
                     ) {
                         bottomNavItems.forEach { item ->
-                            val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+                            val selected =
+                                currentDestination?.hierarchy?.any {
+                                    it.route == item.route
+                                } == true
 
                             NavigationBarItem(
                                 selected = selected,
                                 onClick = {
                                     navController.navigate(item.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
+                                        popUpTo(
+                                            navController.graph.findStartDestination().id
+                                        ) {
                                             saveState = true
                                         }
                                         launchSingleTop = true
@@ -122,7 +145,11 @@ fun AppNavigation() {
             }
 
             composable(Routes.RUN) {
-                RunScreen()
+                RunScreen(navController)
+            }
+
+            composable(Routes.CALENDAR) {
+                CalendarScreen()
             }
         }
     }
