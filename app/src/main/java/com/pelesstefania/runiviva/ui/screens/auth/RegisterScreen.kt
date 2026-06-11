@@ -34,15 +34,26 @@ import com.pelesstefania.runiviva.model.AppUser
 
 @Composable
 fun RegisterScreen(navController: NavHostController) {
+
     var username by remember { mutableStateOf("") }
+
     var email by remember { mutableStateOf("") }
+
     var password by remember { mutableStateOf("") }
+
     var confirmPassword by remember { mutableStateOf("") }
 
     val lightBlue = Color(0xFFD9F0FF)
+
     val context = LocalContext.current
-    val authRepository = remember { AuthRepository() }
-    val userRepository = remember { UserRepository() }
+
+    val authRepository = remember {
+        AuthRepository()
+    }
+
+    val userRepository = remember {
+        UserRepository()
+    }
 
     Column(
         modifier = Modifier
@@ -52,6 +63,7 @@ fun RegisterScreen(navController: NavHostController) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
         Text(
             text = "Create Account",
             style = MaterialTheme.typography.headlineLarge
@@ -61,8 +73,12 @@ fun RegisterScreen(navController: NavHostController) {
 
         OutlinedTextField(
             value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
+            onValueChange = {
+                username = it
+            },
+            label = {
+                Text("Username")
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp)
         )
@@ -71,8 +87,12 @@ fun RegisterScreen(navController: NavHostController) {
 
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
+            onValueChange = {
+                email = it
+            },
+            label = {
+                Text("Email")
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp)
         )
@@ -81,8 +101,12 @@ fun RegisterScreen(navController: NavHostController) {
 
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
+            onValueChange = {
+                password = it
+            },
+            label = {
+                Text("Password")
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             visualTransformation = PasswordVisualTransformation()
@@ -92,8 +116,12 @@ fun RegisterScreen(navController: NavHostController) {
 
         OutlinedTextField(
             value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
+            onValueChange = {
+                confirmPassword = it
+            },
+            label = {
+                Text("Confirm Password")
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             visualTransformation = PasswordVisualTransformation()
@@ -103,56 +131,151 @@ fun RegisterScreen(navController: NavHostController) {
 
         Button(
             onClick = {
-                if (username.isBlank() || email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
-                    Toast.makeText(context, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+
+                if (
+                    username.isBlank() ||
+                    email.isBlank() ||
+                    password.isBlank() ||
+                    confirmPassword.isBlank()
+                ) {
+
+                    Toast.makeText(
+                        context,
+                        "Please fill in all fields",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@Button
+                }
+
+                if (username.trim().length < 3) {
+
+                    Toast.makeText(
+                        context,
+                        "Username too short",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
                     return@Button
                 }
 
                 if (password != confirmPassword) {
-                    Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+
+                    Toast.makeText(
+                        context,
+                        "Passwords do not match",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
                     return@Button
                 }
 
-                authRepository.registerUser(
-                    email = email.trim(),
-                    password = password,
-                    onSuccess = {
-                        val firebaseUser = FirebaseAuth.getInstance().currentUser
+                userRepository.isUsernameTaken(
+                    username = username,
+                    onResult = { isTaken ->
 
-                        if (firebaseUser == null) {
-                            Toast.makeText(context, "User created, but profile could not be loaded", Toast.LENGTH_LONG).show()
-                            return@registerUser
+                        if (isTaken) {
+
+                            Toast.makeText(
+                                context,
+                                "Username already taken",
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                            return@isUsernameTaken
                         }
 
-                        val appUser = AppUser(
-                            uid = firebaseUser.uid,
-                            username = username.trim(),
+                        authRepository.registerUser(
                             email = email.trim(),
-                            streak = 0,
-                            totalRuns = 0,
-                            totalDistanceKm = 0.0,
-                            lastRunDate = ""
-                        )
+                            password = password,
 
-                        userRepository.saveUser(
-                            user = appUser,
                             onSuccess = {
-                                Toast.makeText(context, "Account created successfully", Toast.LENGTH_SHORT).show()
-                                navController.popBackStack()
+
+                                val firebaseUser =
+                                    FirebaseAuth.getInstance().currentUser
+
+                                if (firebaseUser == null) {
+
+                                    Toast.makeText(
+                                        context,
+                                        "User created, but profile could not be loaded",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+
+                                    return@registerUser
+                                }
+
+                                val appUser = AppUser(
+                                    uid = firebaseUser.uid,
+
+                                    username = username.trim(),
+
+                                    usernameLowercase =
+                                        username.trim().lowercase(),
+
+                                    email = email.trim(),
+
+                                    streak = 0,
+
+                                    totalRuns = 0,
+
+                                    totalDistanceKm = 0.0,
+
+                                    lastRunDate = ""
+                                )
+
+                                userRepository.saveUser(
+                                    user = appUser,
+
+                                    onSuccess = {
+
+                                        Toast.makeText(
+                                            context,
+                                            "Account created successfully",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+
+                                        navController.popBackStack()
+                                    },
+
+                                    onError = { errorMessage ->
+
+                                        Toast.makeText(
+                                            context,
+                                            errorMessage,
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                )
                             },
+
                             onError = { errorMessage ->
-                                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+
+                                Toast.makeText(
+                                    context,
+                                    errorMessage,
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                         )
                     },
+
                     onError = { errorMessage ->
-                        Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+
+                        Toast.makeText(
+                            context,
+                            errorMessage,
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 )
             },
+
             modifier = Modifier.fillMaxWidth(),
+
             shape = RoundedCornerShape(16.dp)
         ) {
+
             Text("Create Account")
         }
 
@@ -160,6 +283,7 @@ fun RegisterScreen(navController: NavHostController) {
 
         Text(
             text = "Back to Login",
+
             modifier = Modifier.clickable {
                 navController.popBackStack()
             }

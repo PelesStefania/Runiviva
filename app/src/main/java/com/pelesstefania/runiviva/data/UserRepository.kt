@@ -43,19 +43,39 @@ class UserRepository {
             }
     }
 
-    fun updateUser(
-        user: AppUser,
-        onSuccess: () -> Unit,
+
+    fun isUsernameTaken(
+        username: String,
+        onResult: (Boolean) -> Unit,
         onError: (String) -> Unit
     ) {
         firestore.collection("users")
-            .document(user.uid)
-            .set(user)
-            .addOnSuccessListener {
-                onSuccess()
+            .whereEqualTo("usernameLowercase", username.trim().lowercase())
+            .get()
+            .addOnSuccessListener { documents ->
+                onResult(!documents.isEmpty)
             }
             .addOnFailureListener { exception ->
-                onError(exception.message ?: "Failed to update user")
+                onError(exception.message ?: "Failed to check username")
+            }
+    }
+
+    fun searchUserByUsername(
+        username: String,
+        onSuccess: (AppUser?) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        firestore.collection("users")
+            .whereEqualTo("usernameLowercase", username.trim().lowercase())
+            .get()
+            .addOnSuccessListener { documents ->
+                val user = documents.documents.firstOrNull()
+                    ?.toObject(AppUser::class.java)
+
+                onSuccess(user)
+            }
+            .addOnFailureListener { exception ->
+                onError(exception.message ?: "Failed to search user")
             }
     }
 

@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.pelesstefania.runiviva.R
 import com.pelesstefania.runiviva.data.LocalRunRepository
@@ -41,6 +42,7 @@ import com.pelesstefania.runiviva.data.RunRestoreRepository
 import com.pelesstefania.runiviva.data.RunSyncRepository
 import com.pelesstefania.runiviva.data.UserRepository
 import com.pelesstefania.runiviva.model.AppUser
+import com.pelesstefania.runiviva.navigation.Routes
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.LocalDate
@@ -49,9 +51,11 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(navController: NavController) {
     val backgroundColor = Color(0xFFD9F0FF)
     val cardColor = Color(0xFFEAF6FF)
+    val primaryColor = Color(0xFF4B67A1)
+    val darkBlue = Color(0xFF2F3E75)
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -83,11 +87,7 @@ fun HomeScreen() {
         val remainingSeconds = seconds % 60
 
         return if (minutes > 0) {
-            if (remainingSeconds > 0) {
-                "$minutes min $remainingSeconds sec"
-            } else {
-                "$minutes min"
-            }
+            if (remainingSeconds > 0) "$minutes min $remainingSeconds sec" else "$minutes min"
         } else {
             "$seconds sec"
         }
@@ -204,17 +204,34 @@ fun HomeScreen() {
     ) {
         if (isLoading) {
             Spacer(modifier = Modifier.height(80.dp))
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = primaryColor)
             Spacer(modifier = Modifier.height(16.dp))
             Text("Loading...")
             return@Column
         }
 
-        Text(
-            text = "Welcome, ${user?.username ?: "Runner"}",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Welcome",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = primaryColor
+                )
+
+                Text(
+                    text = user?.username ?: "Runner",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = darkBlue
+                )
+            }
+
+        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -245,7 +262,8 @@ fun HomeScreen() {
         Text(
             text = moodMessage,
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.SemiBold,
+            color = darkBlue
         )
 
         Spacer(modifier = Modifier.height(18.dp))
@@ -261,7 +279,8 @@ fun HomeScreen() {
                 Text(
                     text = "Today",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = darkBlue
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -298,7 +317,8 @@ fun HomeScreen() {
                 Text(
                     text = "Overall",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = darkBlue
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))

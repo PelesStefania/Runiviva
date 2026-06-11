@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -24,12 +26,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.auth.FirebaseAuth
 import com.pelesstefania.runiviva.ui.screens.CalendarScreen
+import com.pelesstefania.runiviva.ui.screens.FriendsScreen
 import com.pelesstefania.runiviva.ui.screens.HomeScreen
+import com.pelesstefania.runiviva.ui.screens.ProfileScreen
 import com.pelesstefania.runiviva.ui.screens.RunScreen
 import com.pelesstefania.runiviva.ui.screens.auth.ForgotPasswordScreen
 import com.pelesstefania.runiviva.ui.screens.auth.LoginScreen
 import com.pelesstefania.runiviva.ui.screens.auth.RegisterScreen
+import com.pelesstefania.runiviva.ui.screens.RunDayDetailsScreen
 
 data class BottomNavItem(
     val route: String,
@@ -56,6 +62,16 @@ fun AppNavigation() {
             route = Routes.CALENDAR,
             label = "Calendar",
             icon = Icons.Default.DateRange
+        ),
+        BottomNavItem(
+            route = Routes.FRIENDS,
+            label = "Friends",
+            icon = Icons.Default.Group
+        ),
+        BottomNavItem(
+            route = Routes.PROFILE,
+            label = "Profile",
+            icon = Icons.Default.Person
         )
     )
 
@@ -66,7 +82,9 @@ fun AppNavigation() {
     val showBottomBar =
         currentRoute == Routes.HOME ||
                 currentRoute == Routes.RUN ||
-                currentRoute == Routes.CALENDAR
+                currentRoute == Routes.CALENDAR ||
+                currentRoute == Routes.FRIENDS ||
+                currentRoute == Routes.PROFILE
 
     val backgroundColor = Color(0xFFD9F0FF)
     val dividerColor = Color(0xFF4B67A1)
@@ -100,6 +118,7 @@ fun AppNavigation() {
                                         ) {
                                             saveState = true
                                         }
+
                                         launchSingleTop = true
                                         restoreState = true
                                     }
@@ -123,9 +142,17 @@ fun AppNavigation() {
             }
         }
     ) { innerPadding ->
+
+        val startDestination =
+            if (FirebaseAuth.getInstance().currentUser != null) {
+                Routes.HOME
+            } else {
+                Routes.LOGIN
+            }
+
         NavHost(
             navController = navController,
-            startDestination = Routes.LOGIN,
+            startDestination = startDestination,
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Routes.LOGIN) {
@@ -141,7 +168,7 @@ fun AppNavigation() {
             }
 
             composable(Routes.HOME) {
-                HomeScreen()
+                HomeScreen(navController)
             }
 
             composable(Routes.RUN) {
@@ -149,7 +176,23 @@ fun AppNavigation() {
             }
 
             composable(Routes.CALENDAR) {
-                CalendarScreen()
+                CalendarScreen(navController)
+            }
+
+            composable(Routes.FRIENDS) {
+                FriendsScreen()
+            }
+
+            composable(Routes.PROFILE) {
+                ProfileScreen(navController)
+            }
+
+            composable("${Routes.RUN_DAY_DETAILS}/{date}") { backStackEntry ->
+                val date = backStackEntry.arguments?.getString("date") ?: ""
+                RunDayDetailsScreen(
+                    navController = navController,
+                    date = date
+                )
             }
         }
     }

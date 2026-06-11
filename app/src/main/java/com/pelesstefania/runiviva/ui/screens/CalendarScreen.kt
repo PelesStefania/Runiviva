@@ -51,9 +51,10 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
-
+import androidx.navigation.NavController
+import com.pelesstefania.runiviva.navigation.Routes
 @Composable
-fun CalendarScreen() {
+fun CalendarScreen(navController: NavController) {
 
     val bgTop = Color(0xFFD9F0FF)
     val bgBottom = Color(0xFFEAF6FF)
@@ -334,29 +335,38 @@ fun CalendarScreen() {
                                             modifier = Modifier.weight(1f),
                                             onClick = {
 
-                                                coroutineScope.launch {
+                                                if (didRun) {
 
-                                                    if (isSick) {
+                                                    navController.navigate(
+                                                        "${Routes.RUN_DAY_DETAILS}/$dateString"
+                                                    )
 
-                                                        calendarStatusRepository
-                                                            .removeSickDay(
-                                                                currentUser!!.uid,
-                                                                dateString
-                                                            )
+                                                } else {
 
-                                                        sickDates =
-                                                            sickDates - dateString
+                                                    coroutineScope.launch {
 
-                                                    } else {
+                                                        if (isSick) {
 
-                                                        calendarStatusRepository
-                                                            .markSickDay(
-                                                                currentUser!!.uid,
-                                                                dateString
-                                                            )
+                                                            calendarStatusRepository
+                                                                .removeSickDay(
+                                                                    currentUser!!.uid,
+                                                                    dateString
+                                                                )
 
-                                                        sickDates =
-                                                            sickDates + dateString
+                                                            sickDates =
+                                                                sickDates - dateString
+
+                                                        } else {
+
+                                                            calendarStatusRepository
+                                                                .markSickDay(
+                                                                    currentUser!!.uid,
+                                                                    dateString
+                                                                )
+
+                                                            sickDates =
+                                                                sickDates + dateString
+                                                        }
                                                     }
                                                 }
                                             }
