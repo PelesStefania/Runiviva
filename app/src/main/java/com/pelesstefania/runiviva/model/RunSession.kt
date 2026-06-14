@@ -9,5 +9,7 @@ data class RunSession(
     val durationSeconds: Int = 0,
     val distanceKm: Double = 0.0,
     val paceMinPerKm: Double = 0.0,
-    val mode: String = "normal"
+    val mode: String = "normal",
+    val startLatitude: Double? = null,
+    val startLongitude: Double? = null
 )

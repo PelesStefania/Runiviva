@@ -36,6 +36,7 @@ import com.pelesstefania.runiviva.ui.screens.auth.ForgotPasswordScreen
 import com.pelesstefania.runiviva.ui.screens.auth.LoginScreen
 import com.pelesstefania.runiviva.ui.screens.auth.RegisterScreen
 import com.pelesstefania.runiviva.ui.screens.RunDayDetailsScreen
+import com.pelesstefania.runiviva.ui.screens.FriendDetailsScreen
 
 data class BottomNavItem(
     val route: String,
@@ -192,6 +193,14 @@ fun AppNavigation() {
                 RunDayDetailsScreen(
                     navController = navController,
                     date = date
+                )
+            }
+            composable("${Routes.FRIEND_DETAILS}/{friendId}") { backStackEntry ->
+                val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
+
+                FriendDetailsScreen(
+                    navController = navController,
+                    friendId = friendId
                 )
             }
         }

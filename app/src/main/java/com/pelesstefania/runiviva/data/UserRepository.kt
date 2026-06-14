@@ -78,6 +78,21 @@ class UserRepository {
                 onError(exception.message ?: "Failed to search user")
             }
     }
+    fun updateUser(
+        user: AppUser,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        firestore.collection("users")
+            .document(user.uid)
+            .set(user)
+            .addOnSuccessListener {
+                onSuccess()
+            }
+            .addOnFailureListener { exception ->
+                onError(exception.message ?: "Failed to update user")
+            }
+    }
 
 
 

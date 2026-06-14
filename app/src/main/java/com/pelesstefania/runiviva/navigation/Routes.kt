@@ -10,5 +10,6 @@ object Routes {
     const val FRIENDS = "friends"
     const val PROFILE = "profile"
     const val RUN_DAY_DETAILS = "run_day_details"
+    const val FRIEND_DETAILS = "friend_details"
 
 }

@@ -25,6 +25,18 @@ object DatabaseProvider {
         }
     }
 
+    private val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE local_runs ADD COLUMN startLatitude REAL"
+            )
+
+            db.execSQL(
+                "ALTER TABLE local_runs ADD COLUMN startLongitude REAL"
+            )
+        }
+    }
+
     fun getDatabase(context: Context): RunivivaDatabase {
         return INSTANCE ?: synchronized(this) {
             val instance = Room.databaseBuilder(
@@ -32,7 +44,10 @@ object DatabaseProvider {
                 RunivivaDatabase::class.java,
                 "runiviva_db"
             )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3
+                )
                 .build()
 
             INSTANCE = instance

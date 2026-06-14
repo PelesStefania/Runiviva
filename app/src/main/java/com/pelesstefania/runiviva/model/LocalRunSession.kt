@@ -15,5 +15,7 @@ data class LocalRunSession(
     val distanceKm: Double,
     val paceMinPerKm: Double,
     val mode: String,
+    val startLatitude: Double? = null,
+    val startLongitude: Double? = null,
     val isSynced: Boolean = false
 )

@@ -1,9 +1,9 @@
 package com.pelesstefania.runiviva.ui.screens
 
 import android.Manifest
-import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.Location
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -34,11 +34,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -54,17 +51,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import com.google.firebase.auth.FirebaseAuth
 import com.pelesstefania.runiviva.data.LocalRunRepository
 import com.pelesstefania.runiviva.data.RunSyncRepository
 import com.pelesstefania.runiviva.model.LocalRunSession
 import com.pelesstefania.runiviva.navigation.Routes
-import kotlinx.coroutines.delay
+import com.pelesstefania.runiviva.service.RunTrackingService
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -80,18 +72,24 @@ fun RunScreen(navController: NavController) {
     val primary = Color(0xFF4B67A1)
     val green = Color(0xFF5DBB73)
     val red = Color(0xFFE57373)
-    val card = Color(0xFFFFFFFF)
+    val card = Color.White
     val softBlue = Color(0xFFBFD7F2)
     val textSoft = Color(0xFF6B5CA5)
     val paleGreen = Color(0xFFE8FFE9)
 
-    val fusedLocationClient = remember {
-        LocationServices.getFusedLocationProviderClient(context)
-    }
-
     val localRunRepository = remember { LocalRunRepository(context) }
     val runSyncRepository = remember { RunSyncRepository(context) }
     val coroutineScope = rememberCoroutineScope()
+
+    val trackingState by RunTrackingService.trackingState.collectAsState()
+
+    val isRunning = trackingState.isRunning
+    val isPaused = trackingState.isPaused
+    val elapsedSeconds = trackingState.elapsedSeconds
+    val distanceMeters = trackingState.distanceMeters
+    val runStartTimeMillis = trackingState.startTimeMillis
+    val startLatitude = trackingState.startLatitude
+    val startLongitude = trackingState.startLongitude
 
     var hasLocationPermission by remember {
         mutableStateOf(
@@ -102,18 +100,30 @@ fun RunScreen(navController: NavController) {
         )
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+        )
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         hasLocationPermission = granted
     }
 
-    var isRunning by remember { mutableStateOf(false) }
-    var isPaused by remember { mutableStateOf(false) }
-
-    var elapsedSeconds by remember { mutableLongStateOf(0L) }
-    var distanceMeters by remember { mutableStateOf(0.0) }
-    var runStartTimeMillis by remember { mutableLongStateOf(0L) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasNotificationPermission = granted
+    }
 
     var lastSavedDistanceKm by remember { mutableStateOf<Double?>(null) }
     var lastSavedDurationSeconds by remember { mutableStateOf<Int?>(null) }
@@ -124,18 +134,24 @@ fun RunScreen(navController: NavController) {
                 lastSavedDurationSeconds != null &&
                 lastSavedPace != null
 
-    val locationPoints = remember { mutableStateListOf<Location>() }
-
     fun formatTime(totalSeconds: Long): String {
         val hours = totalSeconds / 3600
         val minutes = (totalSeconds % 3600) / 60
         val seconds = totalSeconds % 60
-        return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+
+        return String.format(
+            Locale.getDefault(),
+            "%02d:%02d:%02d",
+            hours,
+            minutes,
+            seconds
+        )
     }
 
     fun formatDuration(seconds: Int): String {
         val minutes = seconds / 60
         val remainingSeconds = seconds % 60
+
         return if (minutes > 0) {
             if (remainingSeconds > 0) "$minutes min $remainingSeconds sec" else "$minutes min"
         } else {
@@ -144,7 +160,11 @@ fun RunScreen(navController: NavController) {
     }
 
     fun formatDistance(meters: Double): String {
-        return String.format(Locale.getDefault(), "%.2f km", meters / 1000.0)
+        return String.format(
+            Locale.getDefault(),
+            "%.2f km",
+            meters / 1000.0
+        )
     }
 
     fun calculatePaceValue(seconds: Long, meters: Double): Double {
@@ -153,77 +173,22 @@ fun RunScreen(navController: NavController) {
     }
 
     fun formatPace(seconds: Long, meters: Double): String {
-        return String.format(Locale.getDefault(), "%.2f min/km", calculatePaceValue(seconds, meters))
-    }
-
-    fun resetRunState() {
-        elapsedSeconds = 0L
-        distanceMeters = 0.0
-        locationPoints.clear()
-        runStartTimeMillis = 0L
-        isRunning = false
-        isPaused = false
-    }
-
-    val locationCallback = remember {
-        object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
-                if (!isRunning || isPaused) return
-
-                for (newLocation in result.locations) {
-                    if (locationPoints.isNotEmpty()) {
-                        val lastLocation = locationPoints.last()
-                        val results = FloatArray(1)
-
-                        Location.distanceBetween(
-                            lastLocation.latitude,
-                            lastLocation.longitude,
-                            newLocation.latitude,
-                            newLocation.longitude,
-                            results
-                        )
-
-                        val segmentDistance = results[0].toDouble()
-
-                        if (segmentDistance > 1.5) {
-                            distanceMeters += segmentDistance
-                        }
-                    }
-
-                    locationPoints.add(newLocation)
-                }
-            }
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    fun startLocationUpdates() {
-        val request = LocationRequest.Builder(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            2000L
-        ).setMinUpdateDistanceMeters(2f).build()
-
-        fusedLocationClient.requestLocationUpdates(
-            request,
-            locationCallback,
-            context.mainLooper
+        return String.format(
+            Locale.getDefault(),
+            "%.2f min/km",
+            calculatePaceValue(seconds, meters)
         )
     }
 
-    fun stopLocationUpdates() {
-        fusedLocationClient.removeLocationUpdates(locationCallback)
-    }
-
-    LaunchedEffect(isRunning, isPaused) {
-        while (isRunning && !isPaused) {
-            delay(1000)
-            elapsedSeconds++
+    fun sendTrackingAction(action: String) {
+        val intent = Intent(context, RunTrackingService::class.java).apply {
+            this.action = action
         }
-    }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            stopLocationUpdates()
+        if (action == RunTrackingService.ACTION_START) {
+            ContextCompat.startForegroundService(context, intent)
+        } else {
+            context.startService(intent)
         }
     }
 
@@ -370,7 +335,19 @@ fun RunScreen(navController: NavController) {
                 Button(
                     onClick = {
                         if (!hasLocationPermission) {
-                            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                            locationPermissionLauncher.launch(
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            )
+                            return@Button
+                        }
+
+                        if (
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            !hasNotificationPermission
+                        ) {
+                            notificationPermissionLauncher.launch(
+                                Manifest.permission.POST_NOTIFICATIONS
+                            )
                             return@Button
                         }
 
@@ -378,13 +355,7 @@ fun RunScreen(navController: NavController) {
                         lastSavedDurationSeconds = null
                         lastSavedPace = null
 
-                        elapsedSeconds = 0L
-                        distanceMeters = 0.0
-                        locationPoints.clear()
-                        runStartTimeMillis = System.currentTimeMillis()
-                        isRunning = true
-                        isPaused = false
-                        startLocationUpdates()
+                        sendTrackingAction(RunTrackingService.ACTION_START)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -406,7 +377,11 @@ fun RunScreen(navController: NavController) {
                 ) {
                     Button(
                         onClick = {
-                            isPaused = !isPaused
+                            if (isPaused) {
+                                sendTrackingAction(RunTrackingService.ACTION_RESUME)
+                            } else {
+                                sendTrackingAction(RunTrackingService.ACTION_PAUSE)
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -419,8 +394,8 @@ fun RunScreen(navController: NavController) {
 
                     Button(
                         onClick = {
-                            stopLocationUpdates()
-                            resetRunState()
+                            sendTrackingAction(RunTrackingService.ACTION_STOP)
+
                             lastSavedDistanceKm = null
                             lastSavedDurationSeconds = null
                             lastSavedPace = null
@@ -443,10 +418,10 @@ fun RunScreen(navController: NavController) {
                         val distanceKm = distanceMeters / 1000.0
                         val pace = calculatePaceValue(elapsedSeconds, distanceMeters)
 
-                        val currentUser = FirebaseAuth.getInstance().currentUser
-                        if (currentUser == null) {
-                            stopLocationUpdates()
-                            resetRunState()
+                        val firebaseUser = FirebaseAuth.getInstance().currentUser
+
+                        if (firebaseUser == null) {
+                            sendTrackingAction(RunTrackingService.ACTION_STOP)
                             return@Button
                         }
 
@@ -457,7 +432,7 @@ fun RunScreen(navController: NavController) {
 
                         val localRun = LocalRunSession(
                             runId = UUID.randomUUID().toString(),
-                            userId = currentUser.uid,
+                            userId = firebaseUser.uid,
                             date = currentDate,
                             startTime = runStartTimeMillis,
                             endTime = runEndTimeMillis,
@@ -465,16 +440,16 @@ fun RunScreen(navController: NavController) {
                             distanceKm = distanceKm,
                             paceMinPerKm = pace,
                             mode = "normal",
+                            startLatitude = startLatitude,
+                            startLongitude = startLongitude,
                             isSynced = false
                         )
-
-                        stopLocationUpdates()
 
                         lastSavedDistanceKm = distanceKm
                         lastSavedDurationSeconds = elapsedSeconds.toInt()
                         lastSavedPace = pace
 
-                        resetRunState()
+                        sendTrackingAction(RunTrackingService.ACTION_STOP)
 
                         coroutineScope.launch {
                             localRunRepository.saveRunLocally(localRun)

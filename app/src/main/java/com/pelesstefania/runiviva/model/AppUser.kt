@@ -8,5 +8,6 @@ data class AppUser(
     val streak: Int = 0,
     val totalRuns: Int = 0,
     val totalDistanceKm: Double = 0.0,
-    val lastRunDate: String = ""
+    val lastRunDate: String = "",
+    val notificationTone: String = "funny"
 )
