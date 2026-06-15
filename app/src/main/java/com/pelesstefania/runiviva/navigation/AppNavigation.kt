@@ -37,6 +37,8 @@ import com.pelesstefania.runiviva.ui.screens.auth.LoginScreen
 import com.pelesstefania.runiviva.ui.screens.auth.RegisterScreen
 import com.pelesstefania.runiviva.ui.screens.RunDayDetailsScreen
 import com.pelesstefania.runiviva.ui.screens.FriendDetailsScreen
+import androidx.compose.material.icons.filled.EmojiEvents
+import com.pelesstefania.runiviva.ui.screens.WeeklyChallengeScreen
 
 data class BottomNavItem(
     val route: String,
@@ -58,6 +60,11 @@ fun AppNavigation() {
             route = Routes.RUN,
             label = "Run",
             icon = Icons.AutoMirrored.Filled.DirectionsRun
+        ),
+        BottomNavItem(
+            route = Routes.CHALLENGE,
+            label = "Challenge",
+            icon = Icons.Default.EmojiEvents
         ),
         BottomNavItem(
             route = Routes.CALENDAR,
@@ -83,6 +90,7 @@ fun AppNavigation() {
     val showBottomBar =
         currentRoute == Routes.HOME ||
                 currentRoute == Routes.RUN ||
+                currentRoute == Routes.CHALLENGE ||
                 currentRoute == Routes.CALENDAR ||
                 currentRoute == Routes.FRIENDS ||
                 currentRoute == Routes.PROFILE
@@ -174,6 +182,10 @@ fun AppNavigation() {
 
             composable(Routes.RUN) {
                 RunScreen(navController)
+            }
+
+            composable(Routes.CHALLENGE) {
+                WeeklyChallengeScreen()
             }
 
             composable(Routes.CALENDAR) {

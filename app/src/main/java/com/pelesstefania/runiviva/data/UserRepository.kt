@@ -2,6 +2,7 @@ package com.pelesstefania.runiviva.data
 
 import com.google.firebase.firestore.FirebaseFirestore
 import com.pelesstefania.runiviva.model.AppUser
+import kotlinx.coroutines.tasks.await
 
 class UserRepository {
     private val firestore = FirebaseFirestore.getInstance()
@@ -92,6 +93,18 @@ class UserRepository {
             .addOnFailureListener { exception ->
                 onError(exception.message ?: "Failed to update user")
             }
+    }
+
+    suspend fun getUserByIdSuspend(uid: String): AppUser? {
+        return try {
+            firestore.collection("users")
+                .document(uid)
+                .get()
+                .await()
+                .toObject(AppUser::class.java)
+        } catch (e: Exception) {
+            null
+        }
     }
 
 

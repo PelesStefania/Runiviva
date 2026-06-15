@@ -21,7 +21,6 @@ class RunRestoreRepository(context: Context) {
                 durationSeconds = run.durationSeconds,
                 distanceKm = run.distanceKm,
                 paceMinPerKm = run.paceMinPerKm,
-                mode = run.mode,
                 isSynced = true
             )
 

@@ -35,9 +35,7 @@ data class RunTrackingState(
     val isPaused: Boolean = false,
     val elapsedSeconds: Long = 0L,
     val distanceMeters: Double = 0.0,
-    val startTimeMillis: Long = 0L,
-    val startLatitude: Double? = null,
-    val startLongitude: Double? = null
+    val startTimeMillis: Long = 0L
 )
 
 class RunTrackingService : Service() {
@@ -72,19 +70,9 @@ class RunTrackingService : Service() {
 
             result.locations.forEach { newLocation ->
 
-                if (
-                    _trackingState.value.startLatitude == null &&
-                    _trackingState.value.startLongitude == null &&
-                    newLocation.accuracy <= 30f
-                ) {
-                    _trackingState.value = _trackingState.value.copy(
-                        startLatitude = newLocation.latitude,
-                        startLongitude = newLocation.longitude
-                    )
-                }
-
                 if (locationPoints.isNotEmpty()) {
                     val lastLocation = locationPoints.last()
+
                     val results = FloatArray(1)
 
                     Location.distanceBetween(
@@ -99,7 +87,8 @@ class RunTrackingService : Service() {
 
                     if (segmentDistance > 1.5) {
                         _trackingState.value = _trackingState.value.copy(
-                            distanceMeters = _trackingState.value.distanceMeters + segmentDistance
+                            distanceMeters =
+                                _trackingState.value.distanceMeters + segmentDistance
                         )
 
                         updateNotification()
@@ -183,6 +172,8 @@ class RunTrackingService : Service() {
         timerJob?.cancel()
         fusedLocationClient.removeLocationUpdates(locationCallback)
 
+        locationPoints.clear()
+
         _trackingState.value = RunTrackingState()
 
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -249,9 +240,6 @@ class RunTrackingService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(
-                if (state.isPaused) "Run paused" else "Runiviva is tracking"
-            )
             .setContentText(
                 "${formatTime(state.elapsedSeconds)} • ${formatDistance(state.distanceMeters)}"
             )

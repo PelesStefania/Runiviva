@@ -35,7 +35,6 @@ class FriendRunRepository {
                 durationSeconds = document.getLong("durationSeconds")?.toInt() ?: 0,
                 distanceKm = document.getDouble("distanceKm") ?: 0.0,
                 paceMinPerKm = document.getDouble("paceMinPerKm") ?: 0.0,
-                mode = document.getString("mode") ?: "normal",
                 isSynced = true
             )
         }.sortedByDescending {

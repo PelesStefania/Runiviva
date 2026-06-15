@@ -12,12 +12,11 @@ data class AiNotificationContext(
 
     val totalDistanceKm: Double,
 
-    val lastRunLatitude: Double?,
-
-    val lastRunLongitude: Double?,
-
     val friendRunsLast7Days: Int,
 
-    val hasFriends: Boolean
+    val hasFriends: Boolean,
 
+    val isSickToday: Boolean,
+
+    val wasSickYesterday: Boolean
 )

@@ -215,7 +215,6 @@ fun RegisterScreen(navController: NavHostController) {
 
                                     email = email.trim(),
 
-                                    streak = 0,
 
                                     totalRuns = 0,
 

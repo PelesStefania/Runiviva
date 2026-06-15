@@ -20,10 +20,7 @@ class RunSyncRepository(context: Context) {
                 endTime = localRun.endTime,
                 durationSeconds = localRun.durationSeconds,
                 distanceKm = localRun.distanceKm,
-                paceMinPerKm = localRun.paceMinPerKm,
-                mode = localRun.mode,
-                startLatitude = localRun.startLatitude,
-                startLongitude = localRun.startLongitude
+                paceMinPerKm = localRun.paceMinPerKm
             )
 
             runRepository.saveRunSuspend(runSession)

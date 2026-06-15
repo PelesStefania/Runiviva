@@ -12,4 +12,6 @@ object Routes {
     const val RUN_DAY_DETAILS = "run_day_details"
     const val FRIEND_DETAILS = "friend_details"
 
+    const val CHALLENGE = "challenge"
+
 }

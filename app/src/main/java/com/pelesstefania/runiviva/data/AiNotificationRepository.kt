@@ -3,6 +3,7 @@ package com.pelesstefania.runiviva.data
 import android.content.Context
 import com.pelesstefania.runiviva.model.AiNotificationContext
 import com.pelesstefania.runiviva.model.AppUser
+import java.time.LocalDate
 
 class AiNotificationRepository(
     private val context: Context
@@ -10,21 +11,33 @@ class AiNotificationRepository(
 
     private val localRunRepository = LocalRunRepository(context)
     private val friendRepository = FriendRepository()
+    private val calendarStatusRepository = CalendarStatusRepository(context)
 
     suspend fun buildContext(
         user: AppUser
     ): AiNotificationContext {
 
         val runs = localRunRepository.getRunsForUser(user.uid)
-        val today = java.time.LocalDate.now().toString()
+
+        val today = LocalDate.now()
+        val yesterday = today.minusDays(1)
+
+        val todayString = today.toString()
+        val yesterdayString = yesterday.toString()
 
         val todayRuns = localRunRepository.getRunsForUserByDate(
             user.uid,
-            today
+            todayString
         )
 
-        val latestRun = runs.maxByOrNull {
-            it.startTime
+        val statuses = calendarStatusRepository.getStatusesForUser(user.uid)
+
+        val isSickToday = statuses.any {
+            it.date == todayString && it.status == "sick"
+        }
+
+        val wasSickYesterday = statuses.any {
+            it.date == yesterdayString && it.status == "sick"
         }
 
         val friendIds = friendRepository.getFriends(user.uid)
@@ -34,6 +47,7 @@ class AiNotificationRepository(
 
         if (hasFriends) {
             val friendRunRepository = FriendRunRepository()
+
             for (friendId in friendIds) {
                 friendRunsLast7Days += friendRunRepository
                     .getFriendRunsLast7Days(friendId)
@@ -47,10 +61,10 @@ class AiNotificationRepository(
             ranToday = todayRuns.isNotEmpty(),
             todayDistanceKm = todayRuns.sumOf { it.distanceKm },
             totalDistanceKm = runs.sumOf { it.distanceKm },
-            lastRunLatitude = latestRun?.startLatitude,
-            lastRunLongitude = latestRun?.startLongitude,
             friendRunsLast7Days = friendRunsLast7Days,
-            hasFriends = hasFriends
+            hasFriends = hasFriends,
+            isSickToday = isSickToday,
+            wasSickYesterday = wasSickYesterday
         )
     }
 }

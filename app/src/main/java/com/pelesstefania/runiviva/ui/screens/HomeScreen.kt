@@ -46,9 +46,11 @@ import com.pelesstefania.runiviva.navigation.Routes
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import java.util.Date
 import java.util.Locale
+import com.pelesstefania.runiviva.data.WeeklyChallengeRepository
+import com.pelesstefania.runiviva.model.WeeklyResults
+import java.time.temporal.WeekFields
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -65,6 +67,10 @@ fun HomeScreen(navController: NavController) {
     val runRestoreRepository = remember { RunRestoreRepository(context) }
     val userRepository = remember { UserRepository() }
 
+    val weeklyChallengeRepository = remember {
+        WeeklyChallengeRepository()
+    }
+
     val currentUser = FirebaseAuth.getInstance().currentUser
 
     val currentDate = remember {
@@ -72,6 +78,13 @@ fun HomeScreen(navController: NavController) {
     }
 
     var user by remember { mutableStateOf<AppUser?>(null) }
+    var showWeeklyResults by remember {
+        mutableStateOf(false)
+    }
+
+    var weeklyResults by remember {
+        mutableStateOf<WeeklyResults?>(null)
+    }
     var isLoading by remember { mutableStateOf(true) }
 
     var todayDistance by remember { mutableStateOf(0.0) }
@@ -80,7 +93,6 @@ fun HomeScreen(navController: NavController) {
 
     var totalRuns by remember { mutableStateOf(0) }
     var totalDistance by remember { mutableStateOf(0.0) }
-    var localStreak by remember { mutableStateOf(0) }
 
     fun formatDuration(seconds: Int): String {
         val minutes = seconds / 60
@@ -93,30 +105,6 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
-    fun calculateStreak(dates: List<String>): Int {
-        if (dates.isEmpty()) return 0
-
-        val parsedDates = dates.map {
-            LocalDate.parse(it)
-        }.sortedDescending()
-
-        var streak = 1
-
-        for (i in 0 until parsedDates.size - 1) {
-            val current = parsedDates[i]
-            val next = parsedDates[i + 1]
-
-            val diff = ChronoUnit.DAYS.between(next, current)
-
-            if (diff == 1L) {
-                streak++
-            } else if (diff > 1L) {
-                break
-            }
-        }
-
-        return streak
-    }
 
     fun loadLocalStats(userId: String) {
         coroutineScope.launch {
@@ -138,10 +126,6 @@ fun HomeScreen(navController: NavController) {
             totalRuns = localRunRepository.getTotalRunsForUser(userId)
 
             totalDistance = localRunRepository.getTotalDistanceForUser(userId)
-
-            val runDates = localRunRepository.getRunDates(userId)
-
-            localStreak = calculateStreak(runDates)
 
             isLoading = false
         }
@@ -178,8 +162,40 @@ fun HomeScreen(navController: NavController) {
         )
     }
 
+    fun checkWeeklyResults() {
+
+        if (currentUser == null) return
+
+        coroutineScope.launch {
+
+            val prefs = context.getSharedPreferences(
+                "weekly_results",
+                android.content.Context.MODE_PRIVATE
+            )
+
+            val currentWeek =
+                LocalDate.now().get(
+                    WeekFields.ISO.weekOfWeekBasedYear()
+                )
+
+            val lastSeenWeek =
+                prefs.getInt("last_seen_week", -1)
+
+            if (lastSeenWeek == currentWeek) {
+                return@launch
+            }
+
+            weeklyResults =
+                weeklyChallengeRepository
+                    .getPreviousWeekResults(currentUser.uid)
+
+            showWeeklyResults = true
+        }
+    }
+
     LaunchedEffect(Unit) {
         loadHomeData()
+        checkWeeklyResults()
     }
 
     val averagePace =
@@ -194,147 +210,180 @@ fun HomeScreen(navController: NavController) {
         else -> "Get up and move."
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundColor)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (isLoading) {
-            Spacer(modifier = Modifier.height(80.dp))
-            CircularProgressIndicator(color = primaryColor)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Loading...")
-            return@Column
-        }
-
-        Box(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Welcome",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = primaryColor
-                )
-
-                Text(
-                    text = user?.username ?: "Runner",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = darkBlue
-                )
-            }
-
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Card(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(270.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = backgroundColor)
+                .fillMaxSize()
+                .background(backgroundColor)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            if (isLoading) {
+                Spacer(modifier = Modifier.height(80.dp))
+                CircularProgressIndicator(color = primaryColor)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Loading...")
+                return@Column
+            }
+
             Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.runifericita),
-                    contentDescription = "Runi character",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(270.dp),
-                    contentScale = ContentScale.Fit
-                )
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Welcome",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = primaryColor
+                    )
+
+                    Text(
+                        text = user?.username ?: "Runner",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = darkBlue
+                    )
+                }
+
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(270.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = backgroundColor)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.runifericita),
+                        contentDescription = "Runi character",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(270.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = moodMessage,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = darkBlue
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = cardColor)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "Today",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = darkBlue
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    InfoRow(
+                        "Distance",
+                        String.format(Locale.getDefault(), "%.2f km", todayDistance)
+                    )
+
+                    InfoRow("Runs", "$todayRunCount")
+
+                    InfoRow(
+                        "Duration",
+                        formatDuration(todayDuration)
+                    )
+
+                    InfoRow(
+                        "Avg pace",
+                        String.format(Locale.getDefault(), "%.2f min/km", averagePace)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = cardColor)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "Overall",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = darkBlue
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    InfoRow("Total runs", "$totalRuns")
+
+                    InfoRow(
+                        "Total distance",
+                        String.format(Locale.getDefault(), "%.2f km", totalDistance)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = moodMessage,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = darkBlue
-        )
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = cardColor)
+        if (
+            showWeeklyResults &&
+            weeklyResults != null
         ) {
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-                Text(
-                    text = "Today",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = darkBlue
-                )
 
-                Spacer(modifier = Modifier.height(14.dp))
+            WeeklyResultsOverlay(
+                results = weeklyResults!!,
+                onClose = {
 
-                InfoRow(
-                    "Distance",
-                    String.format(Locale.getDefault(), "%.2f km", todayDistance)
-                )
+                    val prefs = context.getSharedPreferences(
+                        "weekly_results",
+                        android.content.Context.MODE_PRIVATE
+                    )
 
-                InfoRow("Runs", "$todayRunCount")
+                    val currentWeek =
+                        LocalDate.now().get(
+                            WeekFields.ISO.weekOfWeekBasedYear()
+                        )
 
-                InfoRow(
-                    "Duration",
-                    formatDuration(todayDuration)
-                )
+                    prefs.edit()
+                        .putInt(
+                            "last_seen_week",
+                            currentWeek
+                        )
+                        .apply()
 
-                InfoRow(
-                    "Avg pace",
-                    String.format(Locale.getDefault(), "%.2f min/km", averagePace)
-                )
-            }
+                    showWeeklyResults = false
+                }
+            )
         }
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = cardColor)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-                Text(
-                    text = "Overall",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = darkBlue
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                InfoRow("Streak", "$localStreak")
-
-                InfoRow("Total runs", "$totalRuns")
-
-                InfoRow(
-                    "Total distance",
-                    String.format(Locale.getDefault(), "%.2f km", totalDistance)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 

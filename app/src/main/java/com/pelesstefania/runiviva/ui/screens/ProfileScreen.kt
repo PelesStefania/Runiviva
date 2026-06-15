@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +28,8 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,12 +47,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
-import com.pelesstefania.runiviva.data.AiNotificationRepository
-import com.pelesstefania.runiviva.data.AiService
 import com.pelesstefania.runiviva.data.FriendRepository
 import com.pelesstefania.runiviva.data.UserRepository
 import com.pelesstefania.runiviva.model.AppUser
 import com.pelesstefania.runiviva.navigation.Routes
+import com.pelesstefania.runiviva.notifications.NotificationScheduler
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,10 +71,7 @@ fun ProfileScreen(
 
     val userRepository = remember { UserRepository() }
     val friendRepository = remember { FriendRepository() }
-    val aiService = remember { AiService() }
-    val aiNotificationRepository = remember {
-        AiNotificationRepository(context)
-    }
+    val notificationScheduler = remember { NotificationScheduler(context) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -80,9 +79,6 @@ fun ProfileScreen(
     var friends by remember { mutableStateOf<List<AppUser>>(emptyList()) }
 
     var toneMenuExpanded by remember { mutableStateOf(false) }
-
-    var aiMessage by remember { mutableStateOf("") }
-    var isGeneratingAiMessage by remember { mutableStateOf(false) }
 
     val toneOptions = listOf(
         "encouraging" to "Encouraging",
@@ -228,6 +224,7 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
+                // Notification Tone
                 ExposedDropdownMenuBox(
                     expanded = toneMenuExpanded,
                     onExpandedChange = {
@@ -297,77 +294,63 @@ fun ProfileScreen(
                     },
                     color = primary.copy(alpha = 0.75f)
                 )
-            }
-        }
 
-        Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-        // TEST
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(30.dp),
-            colors = CardDefaults.cardColors(containerColor = cardColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(18.dp)
-            ) {
-                Text(
-                    text = "AI test",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = primary
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            isGeneratingAiMessage = true
-                            aiMessage = ""
-
-                            try {
-                                val current = user ?: return@launch
-
-                                val aiContext =
-                                    aiNotificationRepository
-                                        .buildContext(current)
-
-                                aiMessage =
-                                    aiService
-                                        .generateNotification(aiContext)
-                                        .message
-                            } catch (e: Exception) {
-                                aiMessage = e.message ?: "AI error."
-                            }
-
-                            isGeneratingAiMessage = false
-                        }
-                    },
-                    shape = RoundedCornerShape(18.dp)
+                // Enable Notifications Toggle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isGeneratingAiMessage) {
-                            "Generating..."
-                        } else {
-                            "Test AI"
-                        }
+                        text = "Enable Notifications",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = darkBlue
+                    )
+
+                    Switch(
+                        checked = user?.notificationsEnabled ?: true,
+                        onCheckedChange = { isEnabled ->
+                            val current = user ?: return@Switch
+
+                            val updatedUser = current.copy(
+                                notificationsEnabled = isEnabled
+                            )
+
+                            user = updatedUser
+
+                            userRepository.updateUser(
+                                user = updatedUser,
+                                onSuccess = {
+                                    notificationScheduler.scheduleNotifications(isEnabled)
+                                },
+                                onError = {}
+                            )
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = primary,
+                            checkedTrackColor = primary.copy(alpha = 0.3f)
+                        )
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                if (aiMessage.isNotBlank()) {
-                    Text(
-                        text = aiMessage,
-                        color = darkBlue,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                Text(
+                    text = if (user?.notificationsEnabled == true) {
+                        "You'll receive AI notifications twice a day"
+                    } else {
+                        "Notifications are disabled"
+                    },
+                    color = primary.copy(alpha = 0.75f),
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
-        // TEST
 
         Spacer(modifier = Modifier.height(18.dp))
 

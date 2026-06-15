@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.pelesstefania.runiviva.data.CalendarStatusRepository
 import com.pelesstefania.runiviva.data.LocalRunRepository
 import com.pelesstefania.runiviva.data.RunSyncRepository
 import com.pelesstefania.runiviva.model.LocalRunSession
@@ -79,6 +80,7 @@ fun RunScreen(navController: NavController) {
 
     val localRunRepository = remember { LocalRunRepository(context) }
     val runSyncRepository = remember { RunSyncRepository(context) }
+    val calendarStatusRepository = remember { CalendarStatusRepository(context) }
     val coroutineScope = rememberCoroutineScope()
 
     val trackingState by RunTrackingService.trackingState.collectAsState()
@@ -88,8 +90,7 @@ fun RunScreen(navController: NavController) {
     val elapsedSeconds = trackingState.elapsedSeconds
     val distanceMeters = trackingState.distanceMeters
     val runStartTimeMillis = trackingState.startTimeMillis
-    val startLatitude = trackingState.startLatitude
-    val startLongitude = trackingState.startLongitude
+
 
     var hasLocationPermission by remember {
         mutableStateOf(
@@ -192,17 +193,12 @@ fun RunScreen(navController: NavController) {
         }
     }
 
-    val titleText = when {
-        isRunning && !isPaused -> "You’re moving."
-        isRunning && isPaused -> "Paused. Dramatic."
-        else -> "Ready?"
-    }
+    val titleText = if (!isRunning) "Ready?" else ""
 
-    val subtitleText = when {
-        isRunning && !isPaused -> "Distance is being collected. No pressure. Kind of."
-        isRunning && isPaused -> "Taking a break already? Fine."
-        else -> "Start the run when you’re done negotiating with yourself."
-    }
+    val subtitleText = if (!isRunning)
+        "Press Start Run to begin tracking."
+    else
+        ""
 
     Box(
         modifier = Modifier
@@ -439,9 +435,6 @@ fun RunScreen(navController: NavController) {
                             durationSeconds = elapsedSeconds.toInt(),
                             distanceKm = distanceKm,
                             paceMinPerKm = pace,
-                            mode = "normal",
-                            startLatitude = startLatitude,
-                            startLongitude = startLongitude,
                             isSynced = false
                         )
 
@@ -453,6 +446,11 @@ fun RunScreen(navController: NavController) {
 
                         coroutineScope.launch {
                             localRunRepository.saveRunLocally(localRun)
+
+                            calendarStatusRepository.removeSickDay(
+                                userId = firebaseUser.uid,
+                                date = currentDate
+                            )
 
                             try {
                                 runSyncRepository.syncUnsyncedRuns()
