@@ -63,6 +63,18 @@ class AiService {
                 - You know exactly what you should be doing.
             """.trimIndent()
 
+            "injury" -> """
+                Write like a calm, caring friend reminding the user to rest.
+                Do NOT encourage running, training, pushing harder, competition, or movement.
+                Focus on recovery, patience, health, and listening to the body.
+            
+                Examples of the exact vibe needed:
+                - Rest today. Your health matters more than any run.
+                - Recovery is part of progress. Take care of yourself.
+                - No running pressure today. Let your body heal.
+                - A rest day is the right choice when your body needs it.
+            """.trimIndent()
+
             else -> "Write a casual text message encouraging the user to stay active."
         }
 
@@ -96,12 +108,18 @@ class AiService {
             7. If the user has no friends, never mention friends, competition, comparison with others, or social features.
             8. If the user has friends, you MAY use friend activity naturally, especially for the competitive tone.
             9. If the user has friends, friend comparisons should be used mainly for the competitive tone and only occasionally for other tones.
+            10. If tone is injury, never encourage running. Only encourage rest, recovery, and health.
         """.trimIndent()
 
         val response = model.generateContent(prompt)
 
         return AiMessage(
-            message = response.text?.trim()?.removeSurrounding("\"") ?: "How about a short run today?"
+            message = response.text?.trim()?.removeSurrounding("\"")
+                ?: if (context.notificationTone == "injury") {
+                    "Rest today. Your health matters more than any run."
+                } else {
+                    "How about a short run today?"
+                }
         )
     }
 }

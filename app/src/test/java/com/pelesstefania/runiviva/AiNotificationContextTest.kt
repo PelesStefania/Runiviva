@@ -17,16 +17,12 @@ class AiNotificationContextTest {
             todayDistanceKm = 0.0,
             totalDistanceKm = 25.0,
             friendRunsLast7Days = 4,
-            hasFriends = true,
-            isSickToday = true,
-            wasSickYesterday = false
+            hasFriends = true
         )
 
         assertEquals("encouraging", context.notificationTone)
         assertFalse(context.ranToday)
         assertTrue(context.hasFriends)
-        assertTrue(context.isSickToday)
-        assertFalse(context.wasSickYesterday)
         assertEquals(25.0, context.totalDistanceKm, 0.01)
     }
 }

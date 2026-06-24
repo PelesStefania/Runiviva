@@ -53,6 +53,7 @@ import com.pelesstefania.runiviva.model.AppUser
 import com.pelesstefania.runiviva.navigation.Routes
 import com.pelesstefania.runiviva.notifications.NotificationScheduler
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.width
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,7 +85,9 @@ fun ProfileScreen(
         "encouraging" to "Encouraging",
         "funny" to "Funny",
         "rude" to "Rude",
-        "competitive" to "Competitive"
+        "competitive" to "Competitive",
+        "injury" to "Injury / Recovery"
+
     )
 
     LaunchedEffect(Unit) {
@@ -127,7 +130,9 @@ fun ProfileScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 InitialCircleLarge(
@@ -162,7 +167,8 @@ fun ProfileScreen(
             shape = RoundedCornerShape(30.dp),
             colors = CardDefaults.cardColors(containerColor = cardColor),
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-        ) {
+        )
+        {
             Column(
                 modifier = Modifier.padding(18.dp)
             ) {
@@ -181,15 +187,10 @@ fun ProfileScreen(
                         color = primary.copy(alpha = 0.75f)
                     )
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(friends) { friend ->
+                        friends.forEach { friend ->
                             FriendProfileItem(
                                 friend = friend,
                                 primary = primary,
@@ -290,6 +291,7 @@ fun ProfileScreen(
                         "encouraging" -> "Messages will sound supportive and calm."
                         "rude" -> "Messages will be harsher and more direct."
                         "competitive" -> "Messages will push you with comparison and challenge."
+                        "injury" -> "Messages will remind you to rest and protect your health."
                         else -> "Messages will be casual and funny."
                     },
                     color = primary.copy(alpha = 0.75f)
@@ -431,27 +433,35 @@ fun FriendProfileItem(
             containerColor = softBlue
         )
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(14.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalAlignment = Alignment.CenterVertically
         ) {
             InitialCircleSmall(
                 username = friend.username,
                 primary = primary
             )
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
+            Spacer(modifier = Modifier.width(12.dp))
 
-            Text(
-                text = friend.username,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = primary
-            )
+            Column {
+                Text(
+                    text = friend.username,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = primary
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = "Check their runs",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = primary.copy(alpha = 0.70f)
+                )
+            }
         }
     }
 }

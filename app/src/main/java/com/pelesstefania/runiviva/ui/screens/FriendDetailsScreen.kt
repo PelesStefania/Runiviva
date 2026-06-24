@@ -161,7 +161,9 @@ fun FriendDetailsScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 InitialCircleLarge(
@@ -223,7 +225,7 @@ fun FriendDetailsScreen(
                         modifier = Modifier.padding(18.dp)
                     ) {
                         Text(
-                            text = "Run #${index + 1}",
+                            text = "Run number ${index + 1}",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = primary

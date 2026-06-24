@@ -79,7 +79,7 @@ fun BoxScope.WeeklyResultsOverlay(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "🏆",
+                            text = "\uD83C\uDFC6",
                             style = MaterialTheme.typography.headlineLarge
                         )
                     }
@@ -98,9 +98,9 @@ fun BoxScope.WeeklyResultsOverlay(
                     results.top3.forEachIndexed { index, entry ->
 
                         val medal = when (index) {
-                            0 -> "🥇"
-                            1 -> "🥈"
-                            else -> "🥉"
+                            0 -> "\uD83E\uDD47"
+                            1 -> "\uD83E\uDD48"
+                            else -> "\uD83E\uDD49"
                         }
 
                         Text(

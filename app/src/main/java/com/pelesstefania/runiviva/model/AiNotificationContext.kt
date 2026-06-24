@@ -14,9 +14,5 @@ data class AiNotificationContext(
 
     val friendRunsLast7Days: Int,
 
-    val hasFriends: Boolean,
-
-    val isSickToday: Boolean,
-
-    val wasSickYesterday: Boolean
+    val hasFriends: Boolean
 )

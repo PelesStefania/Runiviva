@@ -63,7 +63,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
-
+import com.pelesstefania.runiviva.data.UserRepository
 @Composable
 fun RunScreen(navController: NavController) {
     val context = LocalContext.current
@@ -81,6 +81,8 @@ fun RunScreen(navController: NavController) {
     val localRunRepository = remember { LocalRunRepository(context) }
     val runSyncRepository = remember { RunSyncRepository(context) }
     val calendarStatusRepository = remember { CalendarStatusRepository(context) }
+    val userRepository = remember { UserRepository() }
+
     val coroutineScope = rememberCoroutineScope()
 
     val trackingState by RunTrackingService.trackingState.collectAsState()
@@ -452,10 +454,19 @@ fun RunScreen(navController: NavController) {
                                 date = currentDate
                             )
 
+                            val appUser = userRepository.getUserByIdSuspend(firebaseUser.uid)
+
+                            if (appUser != null && appUser.notificationTone == "injury") {
+                                userRepository.updateUser(
+                                    user = appUser.copy(notificationTone = "encouraging"),
+                                    onSuccess = {},
+                                    onError = {}
+                                )
+                            }
+
                             try {
                                 runSyncRepository.syncUnsyncedRuns()
                             } catch (e: Exception) {
-                                // Silent fail. The run stays saved locally.
                             }
                         }
                     },

@@ -20,25 +20,21 @@ class AiNotificationRepository(
         val runs = localRunRepository.getRunsForUser(user.uid)
 
         val today = LocalDate.now()
-        val yesterday = today.minusDays(1)
 
         val todayString = today.toString()
-        val yesterdayString = yesterday.toString()
+
+        if (user.notificationTone == "injury") {
+            calendarStatusRepository.markSickDay(
+                userId = user.uid,
+                date = todayString
+            )
+        }
 
         val todayRuns = localRunRepository.getRunsForUserByDate(
             user.uid,
             todayString
         )
 
-        val statuses = calendarStatusRepository.getStatusesForUser(user.uid)
-
-        val isSickToday = statuses.any {
-            it.date == todayString && it.status == "sick"
-        }
-
-        val wasSickYesterday = statuses.any {
-            it.date == yesterdayString && it.status == "sick"
-        }
 
         val friendIds = friendRepository.getFriends(user.uid)
         val hasFriends = friendIds.isNotEmpty()
@@ -62,9 +58,7 @@ class AiNotificationRepository(
             todayDistanceKm = todayRuns.sumOf { it.distanceKm },
             totalDistanceKm = runs.sumOf { it.distanceKm },
             friendRunsLast7Days = friendRunsLast7Days,
-            hasFriends = hasFriends,
-            isSickToday = isSickToday,
-            wasSickYesterday = wasSickYesterday
+            hasFriends = hasFriends
         )
     }
 }

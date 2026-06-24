@@ -50,6 +50,7 @@ fun WeeklyChallengeScreen() {
 
     var entries by remember { mutableStateOf<List<WeeklyChallengeEntry>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var isOffline by remember { mutableStateOf(false) }
 
     val today = LocalDate.now()
     val weekNumber = today.get(WeekFields.of(Locale.getDefault()).weekOfWeekBasedYear())
@@ -60,7 +61,14 @@ fun WeeklyChallengeScreen() {
             return@LaunchedEffect
         }
 
-        entries = repository.getWeeklyChallenge(currentUser.uid)
+        try {
+            entries = repository.getWeeklyChallenge(currentUser.uid)
+            isOffline = false
+        } catch (e: Exception) {
+            entries = emptyList()
+            isOffline = true
+        }
+
         isLoading = false
     }
 
@@ -96,6 +104,34 @@ fun WeeklyChallengeScreen() {
 
         if (isLoading) {
             CircularProgressIndicator(color = primary)
+            return@Column
+        }
+
+        if (isOffline) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = cardColor)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "You're offline",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = primary
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Weekly challenge is unavailable right now.",
+                        color = primary.copy(alpha = 0.75f)
+                    )
+                }
+            }
+
             return@Column
         }
 
@@ -142,9 +178,9 @@ fun WeeklyChallengeCard(
     softBlue: Color
 ) {
     val medal = when (position) {
-        1 -> "🥇"
-        2 -> "🥈"
-        3 -> "🥉"
+        1 -> "\uD83E\uDD47"
+        2 -> "\uD83E\uDD48"
+        3 -> "\uD83E\uDD49"
         else -> "$position."
     }
 
