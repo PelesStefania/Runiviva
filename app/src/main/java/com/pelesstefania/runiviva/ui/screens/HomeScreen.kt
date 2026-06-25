@@ -42,7 +42,6 @@ import com.pelesstefania.runiviva.data.RunRestoreRepository
 import com.pelesstefania.runiviva.data.RunSyncRepository
 import com.pelesstefania.runiviva.data.UserRepository
 import com.pelesstefania.runiviva.model.AppUser
-import com.pelesstefania.runiviva.navigation.Routes
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.LocalDate
@@ -51,6 +50,8 @@ import java.util.Locale
 import com.pelesstefania.runiviva.data.WeeklyChallengeRepository
 import com.pelesstefania.runiviva.model.WeeklyResults
 import java.time.temporal.WeekFields
+import com.pelesstefania.runiviva.data.CalendarStatusRepository
+
 
 @Composable
 fun HomeScreen(navController: NavController) {
@@ -66,6 +67,10 @@ fun HomeScreen(navController: NavController) {
     val runSyncRepository = remember { RunSyncRepository(context) }
     val runRestoreRepository = remember { RunRestoreRepository(context) }
     val userRepository = remember { UserRepository() }
+
+    val calendarStatusRepository = remember {
+        CalendarStatusRepository(context)
+    }
 
     val weeklyChallengeRepository = remember {
         WeeklyChallengeRepository()
@@ -155,6 +160,23 @@ fun HomeScreen(navController: NavController) {
             uid = currentUser.uid,
             onSuccess = { loadedUser ->
                 user = loadedUser
+
+                coroutineScope.launch {
+                    val runCountToday = localRunRepository.getRunCountForDate(
+                        userId = loadedUser.uid,
+                        date = currentDate
+                    )
+
+                    if (
+                        loadedUser.notificationTone == "injury" &&
+                        runCountToday == 0
+                    ) {
+                        calendarStatusRepository.markSickDay(
+                            userId = loadedUser.uid,
+                            date = currentDate
+                        )
+                    }
+                }
             },
             onError = {
                 user = null

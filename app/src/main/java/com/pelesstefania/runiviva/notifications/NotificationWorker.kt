@@ -22,22 +22,17 @@ class NotificationWorker(
             val aiService = AiService()
             val aiNotificationRepository = AiNotificationRepository(applicationContext)
 
-            // Fetch current user
             val user = userRepository.getUserByIdSuspend(currentUser.uid)
                 ?: return Result.retry()
 
-            // Check if notifications are enabled
             if (!user.notificationsEnabled) {
                 return Result.success()
             }
 
-            // Build AI context
             val aiContext = aiNotificationRepository.buildContext(user)
 
-            // Generate notification message
             val aiMessage = aiService.generateNotification(aiContext)
 
-            // Send notification
             val notificationManager = NotificationManagerHelper(applicationContext)
             notificationManager.sendNotification(
                 title = "Runiviva",

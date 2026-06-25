@@ -11,9 +11,6 @@ class LocalRunRepository(context: Context) {
         runDao.insertRun(run)
     }
 
-    suspend fun getAllRuns(): List<LocalRunSession> {
-        return runDao.getAllRuns()
-    }
 
     suspend fun getUnsyncedRuns(): List<LocalRunSession> {
         return runDao.getUnsyncedRuns()

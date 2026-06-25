@@ -11,7 +11,6 @@ class AiNotificationRepository(
 
     private val localRunRepository = LocalRunRepository(context)
     private val friendRepository = FriendRepository()
-    private val calendarStatusRepository = CalendarStatusRepository(context)
 
     suspend fun buildContext(
         user: AppUser
@@ -23,12 +22,6 @@ class AiNotificationRepository(
 
         val todayString = today.toString()
 
-        if (user.notificationTone == "injury") {
-            calendarStatusRepository.markSickDay(
-                userId = user.uid,
-                date = todayString
-            )
-        }
 
         val todayRuns = localRunRepository.getRunsForUserByDate(
             user.uid,

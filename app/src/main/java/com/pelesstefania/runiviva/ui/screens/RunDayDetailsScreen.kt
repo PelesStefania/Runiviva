@@ -146,7 +146,7 @@ fun RunDayDetailsScreen(
                         modifier = Modifier.padding(18.dp)
                     ) {
                         Text(
-                            text = "Run #${index + 1}",
+                            text = "Run ${index + 1}",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = primary
@@ -195,13 +195,6 @@ fun RunDayDetailsScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Text(
-                            text = "Graph coming after we save run points.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = primary.copy(alpha = 0.75f)
-                        )
                     }
                 }
             }

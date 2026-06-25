@@ -36,7 +36,6 @@ class CalendarStatusRepository(context: Context) {
             saveStatusToFirebase(status)
             calendarStatusDao.markAsSynced(status.id)
         } catch (e: Exception) {
-            // stays local, sync later
         }
     }
 
@@ -51,7 +50,6 @@ class CalendarStatusRepository(context: Context) {
                 .delete()
                 .await()
         } catch (e: Exception) {
-            // local delete done; remote delete can be improved later with pending deletes
         }
     }
 

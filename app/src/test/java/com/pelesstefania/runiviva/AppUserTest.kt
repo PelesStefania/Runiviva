@@ -18,7 +18,5 @@ class AppUserTest {
 
         assertTrue(user.notificationsEnabled)
         assertEquals("funny", user.notificationTone)
-        assertEquals(8, user.morningNotificationHour)
-        assertEquals(20, user.eveningNotificationHour)
     }
 }

@@ -9,7 +9,5 @@ data class AppUser(
     val totalDistanceKm: Double = 0.0,
     val lastRunDate: String = "",
     val notificationTone: String = "funny",
-    val notificationsEnabled: Boolean = true,
-    val morningNotificationHour: Int = 8,
-    val eveningNotificationHour: Int = 20
+    val notificationsEnabled: Boolean = true
 )

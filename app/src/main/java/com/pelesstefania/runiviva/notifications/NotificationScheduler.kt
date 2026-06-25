@@ -26,7 +26,7 @@ class NotificationScheduler(private val context: Context) {
         scheduleDailyNotificationAtTime(
             workManager,
             "evening_notification",
-            20
+            18
         )
     }
 
@@ -58,7 +58,7 @@ class NotificationScheduler(private val context: Context) {
 
         workManager.enqueueUniquePeriodicWork(
             workTag,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.REPLACE,
             notificationRequest
         )
     }

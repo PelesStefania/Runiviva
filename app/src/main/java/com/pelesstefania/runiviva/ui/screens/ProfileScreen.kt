@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,7 +51,9 @@ import com.pelesstefania.runiviva.navigation.Routes
 import com.pelesstefania.runiviva.notifications.NotificationScheduler
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.width
-
+import com.pelesstefania.runiviva.data.CalendarStatusRepository
+import java.time.LocalDate
+import com.pelesstefania.runiviva.data.LocalRunRepository
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -74,6 +73,9 @@ fun ProfileScreen(
     val friendRepository = remember { FriendRepository() }
     val notificationScheduler = remember { NotificationScheduler(context) }
 
+    val calendarStatusRepository = remember {
+        CalendarStatusRepository(context)
+    }
     val coroutineScope = rememberCoroutineScope()
 
     var user by remember { mutableStateOf<AppUser?>(null) }
@@ -225,7 +227,7 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Notification Tone
+
                 ExposedDropdownMenuBox(
                     expanded = toneMenuExpanded,
                     onExpandedChange = {
@@ -275,7 +277,25 @@ fun ProfileScreen(
 
                                     userRepository.updateUser(
                                         user = updatedUser,
-                                        onSuccess = {},
+                                        onSuccess = {
+                                            if (option.first == "injury") {
+                                                coroutineScope.launch {
+                                                    val today = LocalDate.now().toString()
+
+                                                    val runCountToday = LocalRunRepository(context).getRunCountForDate(
+                                                        userId = current.uid,
+                                                        date = today
+                                                    )
+
+                                                    if (runCountToday == 0) {
+                                                        calendarStatusRepository.markSickDay(
+                                                            userId = current.uid,
+                                                            date = today
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        },
                                         onError = {}
                                     )
                                 }

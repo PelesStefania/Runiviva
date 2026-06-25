@@ -159,6 +159,17 @@ fun RegisterScreen(navController: NavHostController) {
                     return@Button
                 }
 
+                if (password.length < 5) {
+
+                    Toast.makeText(
+                        context,
+                        "Password must be at least 5 characters",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    return@Button
+                }
+
                 if (password != confirmPassword) {
 
                     Toast.makeText(
