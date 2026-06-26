@@ -56,7 +56,7 @@ import com.pelesstefania.runiviva.data.CalendarStatusRepository
 @Composable
 fun HomeScreen(navController: NavController) {
     val backgroundColor = Color(0xFFD9F0FF)
-    val cardColor = Color(0xFFEAF6FF)
+    val cardColor = Color.White
     val primaryColor = Color(0xFF4B67A1)
     val darkBlue = Color(0xFF2F3E75)
 
@@ -296,7 +296,8 @@ fun HomeScreen(navController: NavController) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = cardColor)
+                colors = CardDefaults.cardColors(containerColor = cardColor),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp)
@@ -334,7 +335,8 @@ fun HomeScreen(navController: NavController) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = cardColor)
+                colors = CardDefaults.cardColors(containerColor = cardColor),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp)

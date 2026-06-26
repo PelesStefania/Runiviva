@@ -54,6 +54,9 @@ import androidx.compose.foundation.layout.width
 import com.pelesstefania.runiviva.data.CalendarStatusRepository
 import java.time.LocalDate
 import com.pelesstefania.runiviva.data.LocalRunRepository
+import com.pelesstefania.runiviva.data.AiNotificationRepository
+import com.pelesstefania.runiviva.data.AiService
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -76,12 +79,25 @@ fun ProfileScreen(
     val calendarStatusRepository = remember {
         CalendarStatusRepository(context)
     }
+
+    val aiNotificationRepository = remember {
+        AiNotificationRepository(context)
+    }
+
+    val aiService = remember {
+        AiService()
+    }
+
     val coroutineScope = rememberCoroutineScope()
 
     var user by remember { mutableStateOf<AppUser?>(null) }
     var friends by remember { mutableStateOf<List<AppUser>>(emptyList()) }
 
     var toneMenuExpanded by remember { mutableStateOf(false) }
+
+    var previewMessage by remember {
+        mutableStateOf<String?>(null)
+    }
 
     val toneOptions = listOf(
         "encouraging" to "Encouraging",
@@ -360,17 +376,53 @@ fun ProfileScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
 
-                Text(
-                    text = if (user?.notificationsEnabled == true) {
-                        "You'll receive AI notifications twice a day"
-                    } else {
-                        "Notifications are disabled"
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        val current = user ?: return@Button
+
+                        coroutineScope.launch {
+                            try {
+                                val aiContext =
+                                    aiNotificationRepository.buildContext(current)
+
+                                val aiMessage =
+                                    aiService.generateNotification(aiContext)
+
+                                previewMessage = aiMessage.message
+                            } catch (e: Exception) {
+                                previewMessage = "Could not generate preview."
+                            }
+                        }
                     },
-                    color = primary.copy(alpha = 0.75f),
-                    style = MaterialTheme.typography.bodySmall
-                )
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Text("Preview AI notification")
+                }
+
+                previewMessage?.let { message ->
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = softBlue
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp)
+                        ) {
+                            Text(
+                                text = message,
+                                color = darkBlue
+                            )
+                        }
+                    }
+                }
             }
         }
 
