@@ -7,6 +7,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.pelesstefania.runiviva.data.AiNotificationRepository
 import com.pelesstefania.runiviva.data.AiService
 import com.pelesstefania.runiviva.data.UserRepository
+import com.pelesstefania.runiviva.data.CalendarStatusRepository
+import com.pelesstefania.runiviva.data.LocalRunRepository
+import java.time.LocalDate
 
 class NotificationWorker(
     context: Context,
@@ -22,12 +25,33 @@ class NotificationWorker(
             val aiService = AiService()
             val aiNotificationRepository = AiNotificationRepository(applicationContext)
 
+            val localRunRepository = LocalRunRepository(applicationContext)
+            val calendarStatusRepository = CalendarStatusRepository(applicationContext)
+
             val user = userRepository.getUserByIdSuspend(currentUser.uid)
                 ?: return Result.retry()
 
             if (!user.notificationsEnabled) {
                 return Result.success()
             }
+
+            val today = LocalDate.now().toString()
+
+            val runCountToday = localRunRepository.getRunCountForDate(
+                userId = user.uid,
+                date = today
+            )
+
+            if (
+                user.notificationTone == "injury" &&
+                runCountToday == 0
+            ) {
+                calendarStatusRepository.markSickDay(
+                    userId = user.uid,
+                    date = today
+                )
+            }
+
 
             val aiContext = aiNotificationRepository.buildContext(user)
 
@@ -45,4 +69,6 @@ class NotificationWorker(
             Result.retry()
         }
     }
+
+
 }

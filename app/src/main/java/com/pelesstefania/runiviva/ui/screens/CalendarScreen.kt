@@ -363,8 +363,7 @@ fun CalendarScreen(navController: NavController) {
                                                                     dateString
                                                                 )
 
-                                                            sickDates =
-                                                                sickDates + dateString
+                                                            sickDates = sickDates + dateString
                                                         }
                                                     }
                                                 }

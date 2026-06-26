@@ -160,23 +160,6 @@ fun HomeScreen(navController: NavController) {
             uid = currentUser.uid,
             onSuccess = { loadedUser ->
                 user = loadedUser
-
-                coroutineScope.launch {
-                    val runCountToday = localRunRepository.getRunCountForDate(
-                        userId = loadedUser.uid,
-                        date = currentDate
-                    )
-
-                    if (
-                        loadedUser.notificationTone == "injury" &&
-                        runCountToday == 0
-                    ) {
-                        calendarStatusRepository.markSickDay(
-                            userId = loadedUser.uid,
-                            date = currentDate
-                        )
-                    }
-                }
             },
             onError = {
                 user = null

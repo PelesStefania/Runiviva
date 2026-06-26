@@ -85,14 +85,12 @@ class RunTrackingService : Service() {
 
                     val segmentDistance = results[0].toDouble()
 
-                    if (segmentDistance > 1.5) {
-                        _trackingState.value = _trackingState.value.copy(
-                            distanceMeters =
-                                _trackingState.value.distanceMeters + segmentDistance
-                        )
+                    _trackingState.value = _trackingState.value.copy(
+                        distanceMeters = _trackingState.value.distanceMeters + segmentDistance
+                    )
 
-                        updateNotification()
-                    }
+                    updateNotification()
+
                 }
 
                 locationPoints.add(newLocation)
