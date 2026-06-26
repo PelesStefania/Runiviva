@@ -12,7 +12,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize notifications if user is logged in
         if (FirebaseAuth.getInstance().currentUser != null) {
             val notificationScheduler = NotificationScheduler(this)
             notificationScheduler.scheduleNotifications(isEnabled = true)
