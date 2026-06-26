@@ -335,7 +335,6 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Enable Notifications Toggle
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
