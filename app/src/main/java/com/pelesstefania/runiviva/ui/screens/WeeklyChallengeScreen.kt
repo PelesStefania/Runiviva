@@ -135,21 +135,6 @@ fun WeeklyChallengeScreen() {
             return@Column
         }
 
-        if (entries.isEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = cardColor)
-            ) {
-                Text(
-                    text = "No challenge data yet.",
-                    modifier = Modifier.padding(20.dp),
-                    color = primary
-                )
-            }
-
-            return@Column
-        }
 
         entries.forEachIndexed { index, entry ->
             WeeklyChallengeCard(
